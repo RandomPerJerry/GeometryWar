@@ -21,10 +21,13 @@ class enemy(pygame.sprite.Sprite):
         self.direction = vector()
         self.speed = speed
     
-    def movement(self):
+    def movement(self, dt):
         self.determine_vector = vector(self.player_pos[0] - self.rect.centerx, self.player_pos[1] - self.rect.centery)
+
         self.direction = self.determine_vector.normalize() if self.determine_vector else self.determine_vector
-        self.rect.center += self.direction * self.speed
+ 
+
+        self.rect.center += self.direction * self.speed * dt
 
     def turn(self):
         rel_x, rel_y = self.player_pos[0] - self.rect.centerx, self.player_pos[1] - self.rect.centery
@@ -46,8 +49,8 @@ class enemy(pygame.sprite.Sprite):
         self.player_pos = pos  
             
     
-    def update(self):
-        self.movement()
+    def update(self, dt):
+        self.movement(dt)
         self.collision()
         self.turn()
 

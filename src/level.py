@@ -26,10 +26,11 @@ class level:
         for _ in range(amount):
             cordinates = [(random.randint(0, winWidth), random.choice([0 - random.randint(20, 100), winHeight + random.randint(20, 100)])),
                         (random.choice([0 - random.randint(20, 100), winWidth + random.randint(20, 100)]), random.randint(0, winHeight))]
-            enemy(random.choice(cordinates), 3, self.SpriteGroups)
+            enemy(random.choice(cordinates), 300, self.SpriteGroups)
 
             if len(self.SpriteGroups.gravity_ball_sprites) < 5:
                 GravityBallCenter((random.randint(0, winWidth), random.randint(0, winHeight)), 300, 300, self.SpriteGroups)
+
     
     def draw_background(self):
         self.display_surface.fill(clrBlack)
@@ -39,8 +40,8 @@ class level:
         self.level += 1
         self.generate_enemies(self.level * 2)
 
-    def run(self):
-        self.SpriteGroups.all_sprites.update()
+    def run(self, dt):
+        self.SpriteGroups.all_sprites.update(dt)
         self.draw_background()
         self.SpriteGroups.all_sprites.draw(self.display_surface)
 

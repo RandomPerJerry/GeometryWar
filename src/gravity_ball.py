@@ -1,4 +1,5 @@
 from settings import *
+from timer import Timer
 
 class GravityBallCenter(pygame.sprite.Sprite):
     def __init__(self, pos, width, height, groups = None):
@@ -6,12 +7,12 @@ class GravityBallCenter(pygame.sprite.Sprite):
         self.pos = pos
         self.targetwidth = width
         self.targetheight = height
-        self.bullet_sprites = groups.bullet_sprites
+        self.group = groups
 
-        self.bigcurrentwidth = 10
-        self.bigcurrentheight = 10
-        self.smallcurrentwidth = 30
-        self.smallcurrentheight = 30
+        self.bigcurrentwidth = 15
+        self.bigcurrentheight = 15
+        self.smallcurrentwidth = 5
+        self.smallcurrentheight = 5
 
         self.image1 = pygame.image.load('data/gravball.png')
         self.image2 = pygame.image.load('data/gravballback.png')
@@ -37,27 +38,35 @@ class GravityBallCenter(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center = pos)
         self.hitbox = self.image1.get_rect(center = pos)
 
+        self.invincible = Timer(1000)
+        self.invincible.activate()
+
+        self.grow_speed = 30
+        self.bomb_hit = []
+        self.dying = False
         self.keepgrow = True
         self.needupdate = False
 
-    def update(self):
+
+    def update(self, dt):
+        self.check_death(dt)
+        self.invincible.update()
         self.collide()
-        self.check_death()
 
         if self.needupdate:
             self.update_size()
 
         if self.keepgrow:
-            self.grow()
+            self.grow(dt)
 
-    def grow(self):
+    def grow(self, dt):
 
         if self.bigcurrentwidth < self.targetwidth and self.bigcurrentheight < self.targetheight:
 
-            self.smallcurrentwidth += 10
-            self.smallcurrentheight += 10
-            self.bigcurrentwidth = self.smallcurrentwidth * 3
-            self.bigcurrentheight = self.smallcurrentheight * 3
+            self.smallcurrentwidth += self.grow_speed * dt
+            self.smallcurrentheight += self.grow_speed * dt
+            self.bigcurrentwidth += self.grow_speed * 3 * dt
+            self.bigcurrentheight += self.grow_speed * 3 * dt
 
             self.needupdate = True
 
@@ -65,40 +74,57 @@ class GravityBallCenter(pygame.sprite.Sprite):
             self.keepgrow = False
 
     def collide(self):
-        for bullet in self.bullet_sprites:
-            if self.hitbox.colliderect(bullet.rect):
-                self.smallcurrentwidth -= 10
-                self.smallcurrentheight -= 10
+        if not self.invincible.active:
+            for bullet in self.group.bullet_sprites:
+                if self.hitbox.colliderect(bullet.rect):
+                    self.smallcurrentwidth -= 15
+                    self.smallcurrentheight -= 15
 
-                self.needupdate = True
+                    self.needupdate = True
+                    self.keepgrow = False
 
-                bullet.kill()
+                    bullet.kill()
+            
+            for bomb in self.group.bomb_sprites:
+                if self.hitbox.colliderect(bomb.rect) and bomb not in self.bomb_hit:
+                    self.smallcurrentwidth -= 60
+                    self.smallcurrentheight -= 60
+
+                    self.needupdate = True
+                    self.keepgrow = False
+                    self.bomb_hit.append(bomb)
+
+    def get_center_pos(self):
+        return self.rect.center
 
     def update_size(self):
         # Shrink image1
 
+        if self.smallcurrentwidth > 0 and self.smallcurrentheight > 0:
+            self.image1 = pygame.transform.scale(self.image1_copy, (self.smallcurrentwidth, self.smallcurrentheight))
 
-        self.image1 = pygame.transform.scale(self.image1_copy, (self.smallcurrentwidth, self.smallcurrentheight))
-
-
-        self.image2 = pygame.transform.scale(self.image2_copy, (self.bigcurrentwidth, self.bigcurrentheight))
+        if self.bigcurrentwidth >  0 and self.bigcurrentheight > 0:
+            self.image2 = pygame.transform.scale(self.image2_copy, (self.bigcurrentwidth, self.bigcurrentheight))
 
         # Update the hitbox
-        self.rect = self.image.get_rect(center = self.pos)
-        self.hitbox = self.image1.get_rect(center = self.pos)
+        if not self.dying:
+            self.rect = self.image.get_rect(center = self.pos)
+            self.hitbox = self.image1.get_rect(center = self.pos)
 
         # Clear the combined image
         self.image.fill((0, 0, 0, 0))
 
         # Calculate the top-left position of image1 such that it is centered on the Surface
-        self.image1_pos = (self.image.get_width() // 2 - self.image1.get_width() // 2, 
-                        self.image.get_height() // 2 - self.image1.get_height() // 2)
+        if not self.dying:
+            self.image1_pos = (self.image.get_width() // 2 - self.image1.get_width() // 2, 
+                            self.image.get_height() // 2 - self.image1.get_height() // 2)
         
         self.image2_pos = (self.image.get_width() // 2 - self.image2.get_width() // 2, 
                         self.image.get_height() // 2 - self.image2.get_height() // 2)
 
         # Draw image1 onto the Surface at the calculated position
-        self.image.blit(self.image1, self.image1_pos)
+        if not self.dying:
+            self.image.blit(self.image1, self.image1_pos)
 
         # Draw image2 onto the Surface at its original position
         self.image.blit(self.image2, self.image2_pos)
@@ -106,11 +132,14 @@ class GravityBallCenter(pygame.sprite.Sprite):
         self.needupdate = False
         
 
-    def check_death(self):
-        if self.smallcurrentwidth <= 5 or self.smallcurrentheight <= 5:
+    def check_death(self, dt):
+        if self.smallcurrentwidth < 5 or self.smallcurrentheight < 5:
+            self.dying = True
             self.needupdate = True
-            self.bigcurrentwidth -= 20
-            self.bigcurrentheight -= 20
+            self.smallcurrentwidth = -1
+            self.smallcurrentheight = -1
+            self.bigcurrentwidth -= 60 * dt
+            self.bigcurrentheight -= 60 * dt
             if self.bigcurrentwidth <= 0 or self.bigcurrentheight <= 0:
                 self.kill()
 

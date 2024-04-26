@@ -12,11 +12,7 @@ class player(pygame.sprite.Sprite):
         #bullet_sprite = None, enemy_sprites = None, bomb_sprites = None
         super().__init__(groups.all_sprites)
 
-
-        self.all_sprites = groups.all_sprites
-        self.bullet_sprites = groups.bullet_sprites
-        self.enemy_sprites = groups.enemy_sprites
-        self.bomb_sprites = groups.bomb_sprites
+        self.group = groups
 
         self.pos = pos
         self.image = pygame.image.load(join("data", "ship.png"))
@@ -28,7 +24,7 @@ class player(pygame.sprite.Sprite):
 
         self.angle = 0
         self.direction = vector()
-        self.speed = 5
+        self.speed = 500
 
         self.dash_multiplier = 1
 
@@ -66,21 +62,21 @@ class player(pygame.sprite.Sprite):
             self.dash_multiplier = 1
 
         if keys[pygame.K_SPACE] and self.timer["bomb"].active == False:
-            clsBomb(self.rect.center, 10, (self.all_sprites, self.bomb_sprites))
+            clsBomb(self.rect.center, 10, self.group)
             self.timer["bomb"].activate()
 
         if pygame.mouse.get_pressed()[0] and self.timer["shoot"].active == False:
-            bullet(self.rect.center, -self.angle, 5, (self.bullet_sprites, self.all_sprites))
+            bullet(self.rect.center, -self.angle, 5, self.group)
             self.timer["shoot"].activate()
 
     def collision(self):
-        for enemy in self.enemy_sprites:
+        for enemy in self.group.enemy_sprites:
             if self.rect.colliderect(enemy.rect):
                 self.health -= 1
 
                 
-    def movement(self):
-        self.rect.center += self.direction * self.speed * self.dash_multiplier
+    def movement(self, dt):
+        self.rect.center += self.direction * self.speed * self.dash_multiplier * dt
 
         if self.rect.left < 0:
             self.rect.center = self.old_rect.center
@@ -109,12 +105,12 @@ class player(pygame.sprite.Sprite):
         for timer in self.timer.values():
             timer.update()  
 
-    def update(self):
+    def update(self, dt):
         self.old_rect = self.rect.copy()
         self.collision()
         self.update_timers()
         self.input()
-        self.movement()
+        self.movement(dt)
         self.ship_rotation()
         
 

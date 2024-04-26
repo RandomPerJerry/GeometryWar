@@ -18,9 +18,11 @@ class game:
                     pygame.quit()
                     sys.exit()
 
-            self.level.run()
+            dt = self.cloak.tick(60)/1000
 
-            self.cloak.tick(60)
+            self.level.run(dt)
+      
+
             pygame.display.update()
 
 if __name__ == '__main__':
