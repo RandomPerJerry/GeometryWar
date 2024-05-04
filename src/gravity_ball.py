@@ -14,8 +14,8 @@ class GravityBallCenter(pygame.sprite.Sprite):
         self.smallcurrentwidth = 5
         self.smallcurrentheight = 5
 
-        self.image1 = pygame.image.load('data/gravball.png')
-        self.image2 = pygame.image.load('data/gravballback.png')
+        self.image1 = pygame.image.load(join("data", "gravball.png"))
+        self.image2 = pygame.image.load(join("data", "gravballback.png"))
 
         self.image1_copy = self.image1.copy()
         self.image2_copy = self.image2.copy()
@@ -27,19 +27,22 @@ class GravityBallCenter(pygame.sprite.Sprite):
         self.image = pygame.Surface((self.targetwidth*3 + 20, self.targetheight*3 + 20), pygame.SRCALPHA) 
             
         # Calculate the top-left position of each image such that they are centered on the Surface
-        center = (self.image.get_width() // 2, self.image.get_height() // 2)
-        self.image1_pos = (center[0] - self.image1.get_width() // 2, center[1] - self.image1.get_height() // 2)
-        self.image2_pos = (center[0] - self.image2.get_width() // 2, center[1] - self.image2.get_height() // 2)
+        image_center = (self.image.get_width() // 2, self.image.get_height() // 2)
+        self.image1_pos = (image_center[0] - self.image1.get_width() // 2, image_center[1] - self.image1.get_height() // 2)
+        self.image2_pos = (image_center[0] - self.image2.get_width() // 2, image_center[1] - self.image2.get_height() // 2)
 
         # Draw each image onto the Surface at the calculated position
         self.image.blit(self.image1, self.image1_pos)
         self.image.blit(self.image2, self.image2_pos)
 
-        self.rect = self.image.get_rect(center = pos)
-        self.hitbox = self.image1.get_rect(center = pos)
+        self.rect = self.image.get_frect(center = self.pos)
+        self.hitbox = self.image1.get_frect(center = self.pos)
+        self.gravity_hitbox = self.image2.get_frect(center = self.pos)
 
-        self.invincible = Timer(1000)
-        self.invincible.activate()
+        self.timer = {"Invincible" : Timer(1000),
+                      "Regrow" : Timer(5000)}
+
+        self.timer["Invincible"].activate()
 
         self.grow_speed = 30
         self.bomb_hit = []
@@ -47,11 +50,19 @@ class GravityBallCenter(pygame.sprite.Sprite):
         self.keepgrow = True
         self.needupdate = False
 
+    def update_timer(self):
+        for timer in self.timer.values():
+            timer.update()
+
+    def check_regrow(self):
+        if not self.timer["Regrow"].active and not self.dying:
+            self.keepgrow = True
 
     def update(self, dt):
         self.check_death(dt)
-        self.invincible.update()
         self.collide()
+        self.update_timer()
+        self.check_regrow()
 
         if self.needupdate:
             self.update_size()
@@ -63,10 +74,15 @@ class GravityBallCenter(pygame.sprite.Sprite):
 
         if self.bigcurrentwidth < self.targetwidth and self.bigcurrentheight < self.targetheight:
 
-            self.smallcurrentwidth += self.grow_speed * dt
-            self.smallcurrentheight += self.grow_speed * dt
             self.bigcurrentwidth += self.grow_speed * 3 * dt
             self.bigcurrentheight += self.grow_speed * 3 * dt
+
+            self.needupdate = True
+
+        if self.smallcurrentwidth < self.targetwidth/3 and self.smallcurrentheight < self.targetheight/3:
+
+            self.smallcurrentwidth += self.grow_speed * dt
+            self.smallcurrentheight += self.grow_speed * dt
 
             self.needupdate = True
 
@@ -74,7 +90,7 @@ class GravityBallCenter(pygame.sprite.Sprite):
             self.keepgrow = False
 
     def collide(self):
-        if not self.invincible.active:
+        if not self.timer["Invincible"].active:
             for bullet in self.group.bullet_sprites:
                 if self.hitbox.colliderect(bullet.rect):
                     self.smallcurrentwidth -= 15
@@ -83,6 +99,8 @@ class GravityBallCenter(pygame.sprite.Sprite):
                     self.needupdate = True
                     self.keepgrow = False
 
+                    self.timer["Regrow"].activate()
+
                     bullet.kill()
             
             for bomb in self.group.bomb_sprites:
@@ -90,9 +108,12 @@ class GravityBallCenter(pygame.sprite.Sprite):
                     self.smallcurrentwidth -= 60
                     self.smallcurrentheight -= 60
 
+                    self.timer["Regrow"].activate()
+
                     self.needupdate = True
                     self.keepgrow = False
                     self.bomb_hit.append(bomb)
+        
 
     def get_center_pos(self):
         return self.rect.center
@@ -108,8 +129,10 @@ class GravityBallCenter(pygame.sprite.Sprite):
 
         # Update the hitbox
         if not self.dying:
-            self.rect = self.image.get_rect(center = self.pos)
-            self.hitbox = self.image1.get_rect(center = self.pos)
+            self.rect = self.image.get_frect(center = self.pos)
+            self.hitbox = self.image1.get_frect(center = self.pos)
+
+        self.gravity_hitbox = self.image2.get_frect(center = self.pos)
 
         # Clear the combined image
         self.image.fill((0, 0, 0, 0))
@@ -133,15 +156,17 @@ class GravityBallCenter(pygame.sprite.Sprite):
         
 
     def check_death(self, dt):
-        if self.smallcurrentwidth < 5 or self.smallcurrentheight < 5:
-            self.dying = True
-            self.needupdate = True
-            self.smallcurrentwidth = -1
-            self.smallcurrentheight = -1
-            self.bigcurrentwidth -= 60 * dt
-            self.bigcurrentheight -= 60 * dt
-            if self.bigcurrentwidth <= 0 or self.bigcurrentheight <= 0:
-                self.kill()
+        if not self.timer["Invincible"].active:
+            if self.smallcurrentwidth < 15 or self.smallcurrentheight < 15:
+                self.dying = True
+                self.needupdate = True
+                self.smallcurrentwidth = -1
+                self.smallcurrentheight = -1
+                self.bigcurrentwidth -= 200 * dt
+                self.bigcurrentheight -= 200 * dt
+                self.hitbox = pygame.Rect(0, 0, 0, 0)
+                if self.bigcurrentwidth <= 0 or self.bigcurrentheight <= 0:
+                    self.kill()
 
     
 

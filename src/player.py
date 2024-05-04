@@ -17,7 +17,7 @@ class player(pygame.sprite.Sprite):
         self.pos = pos
         self.image = pygame.image.load(join("data", "ship.png"))
         self.image_copy = self.image.copy()
-        self.rect = self.image.get_rect(topleft = self.pos)
+        self.rect = self.image.get_frect(topleft = self.pos)
         self.old_rect = self.rect.copy()
 
         self.health = 100
@@ -26,13 +26,16 @@ class player(pygame.sprite.Sprite):
         self.direction = vector()
         self.speed = 500
 
+        self.gravity_pull = vector(0, 0)
+        
         self.dash_multiplier = 1
 
         self.timer = {
             "shoot" : Timer(200),
             "bomb" : Timer(500),
             "dash" : Timer(1000),
-            "dash_duration" : Timer(70)
+            "dash_duration" : Timer(70),
+            "invincible" : Timer(200)
         }
 
     def input(self):
@@ -70,13 +73,38 @@ class player(pygame.sprite.Sprite):
             self.timer["shoot"].activate()
 
     def collision(self):
-        for enemy in self.group.enemy_sprites:
-            if self.rect.colliderect(enemy.rect):
-                self.health -= 1
 
+        if not self.timer["invincible"].active:
+            for enemy in self.group.enemy_sprites:
+                if self.rect.colliderect(enemy.rect):
+                    self.health -= 5
+                    self.timer["invincible"].activate()
+
+        pull_vector = vector(0, 0)
+
+        for gravity_ball in self.group.gravity_ball_sprites:
+            if self.rect.colliderect(gravity_ball.gravity_hitbox):
+                pull_vector = vector(gravity_ball.rect.center[0] - self.rect.centerx, 
+                                        gravity_ball.rect.center[1] - self.rect.centery)
+                if self.rect.colliderect(gravity_ball.hitbox) and not self.timer["invincible"].active:
+                    self.health -= 10
+                    self.timer["invincible"].activate()
                 
+        self.gravity_pull = pull_vector.normalize() if pull_vector else pull_vector
+
+    def check_health(self):
+        if self.health < 0:
+            self.health = 0
+
+        elif self.health > 100:
+            self.health = 100
+        
+        return self.health
+           
     def movement(self, dt):
+
         self.rect.center += self.direction * self.speed * self.dash_multiplier * dt
+        self.rect.center += self.gravity_pull * 100 * dt
 
         if self.rect.left < 0:
             self.rect.center = self.old_rect.center
@@ -99,7 +127,7 @@ class player(pygame.sprite.Sprite):
         rel_x, rel_y = mouseX - self.rect.centerx, mouseY - self.rect.centery
         self.angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
         self.image = pygame.transform.rotate(self.image_copy, self.angle)
-        self.rect = self.image.get_rect(center = self.rect.center)
+        self.rect = self.image.get_frect(center = self.rect.center)
 
     def update_timers(self):
         for timer in self.timer.values():
@@ -107,7 +135,9 @@ class player(pygame.sprite.Sprite):
 
     def update(self, dt):
         self.old_rect = self.rect.copy()
+        self.direction = vector()
         self.collision()
+        self.check_health()
         self.update_timers()
         self.input()
         self.movement(dt)

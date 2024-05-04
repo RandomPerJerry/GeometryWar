@@ -12,7 +12,7 @@ class bullet(pygame.sprite.Sprite):
         self.group = group
 
         self.angle = angle
-        self.speed = 50
+        self.speed = 25
         self.direction = vector()
         self.direction.from_polar((self.speed, self.angle))
 
