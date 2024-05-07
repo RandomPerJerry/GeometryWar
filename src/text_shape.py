@@ -1,7 +1,7 @@
 from settings import *
 
 class Text:
-    def __init__(self, surf, x, y, size, text, colour):
+    def __init__(self, surf, x, y, size : int, text : str, colour : tuple):
         #Pre: Requires parameters for message
         #Post: Uses parameters to set variables
         self.surf = surf
@@ -18,10 +18,11 @@ class Text:
     def draw(self):
         #Pre: Function called, setup variables created
         #Post: Blits message onto pygame screen
-        text = self.font.render(f"{self.text}%", True, self.colour)
-        iTextWidth = text.get_width()
-        iTextHeight = text.get_height()
-        self.surf.blit(text, (self.x - (iTextWidth // 2), self.y - (iTextHeight // 2) ) )
+
+        text = self.font.render(self.text, True, self.colour)
+
+        rect = text.get_rect(left = self.x, top = self.y)
+        self.surf.blit(text, rect)
 
 class HealthBar:
     def __init__(self, surf, x, y, health, h, maxhealth, barwidth, colour):

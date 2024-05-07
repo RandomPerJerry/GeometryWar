@@ -19,12 +19,8 @@ class game:
                     sys.exit()
 
             dt = self.cloak.tick(60)/1000
-
             self.level.run(dt)
-
-            print(self.cloak.get_fps())
       
-
             pygame.display.update()
             
 if __name__ == '__main__':

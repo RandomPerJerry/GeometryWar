@@ -32,8 +32,8 @@ class player(pygame.sprite.Sprite):
 
         self.timer = {
             "shoot" : Timer(200),
-            "bomb" : Timer(500),
-            "dash" : Timer(1000),
+            "bomb" : Timer(20000),
+            "dash" : Timer(3000),
             "dash_duration" : Timer(70),
             "invincible" : Timer(200)
         }
@@ -107,16 +107,16 @@ class player(pygame.sprite.Sprite):
         self.rect.center += self.gravity_pull * 100 * dt
 
         if self.rect.left < 0:
-            self.rect.center = self.old_rect.center
+            self.rect.left = 0
 
         if self.rect.right > winWidth:
-            self.rect.center = self.old_rect.center
+            self.rect.right = winWidth
         
         if self.rect.top < 0:
-            self.rect.center = self.old_rect.center
+            self.rect.top = 0
 
         if self.rect.bottom > winHeight:
-            self.rect.center = self.old_rect.center
+            self.rect.bottom = winHeight
 
     def get_pos(self):
         return self.rect.center

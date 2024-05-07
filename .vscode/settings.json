@@ -1,0 +1,37 @@
+{
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "vexlog.error",
+                "settings": {
+                    "foreground": "#ff3232"
+                }
+            },
+            {
+                "scope": "vexlog.warning",
+                "settings": {
+                    "foreground": "#FFFF00"
+                }
+            },
+            {
+                "scope": "vexlog.normal",
+                "settings": {
+                    "foreground": "#4479ff"
+                }
+            },
+            {
+                "scope": "vexlog.battery",
+                "settings": {
+                    "foreground": "#4479ff"
+                }
+            },
+            {
+                "scope": "vexlog.power",
+                "settings": {
+                    "foreground": "#00a000"
+                }
+            }
+        ],
+        "comments": ""
+    }
+}
