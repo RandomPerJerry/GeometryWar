@@ -4,19 +4,23 @@ from Enemies import enemy
 from gravity_ball import GravityBallCenter
 from SpriteGroups import SpriteGroups
 from text_shape import HealthBar, Text
+from timer import Timer
 import random
 
 
 class level:
-    def __init__(self):
+    def __init__(self) -> None:
         self.display_surface = pygame.display.get_surface()
 
         self.imgBackground = pygame.image.load(join("data", "background.png")).convert_alpha() #load background image
         self.imgBackgroundBehind = pygame.image.load(join("data", "background2.png")).convert_alpha()
 
+        self.spawntimmer = Timer(2000)
+        self.intilize_spawn = False
+
         self.setup()
 
-    def setup(self):
+    def setup(self) -> None:
 
         self.level = 0
 
@@ -28,13 +32,13 @@ class level:
 
         self.boss = None
         self.bossBar = None
-        self.dashtext = Text(self.display_surface, 20, winHeight - 100, 30, f"{round(self.player.timer['dash'].time_left/1000, 1)}", clrWhite)
-        self.bombtext = Text(self.display_surface, 20, winHeight - 150, 30, f"{round(self.player.timer['bomb'].time_left/1000, 1)}", clrWhite)
-        self.leveltext = Text(self.display_surface, 350, 20, 60, f"Level: {self.level}", clrWhite)
+        self.dashtext = Text(self.display_surface, 20, winHeight - 100, 30, f"{round(self.player.timer['dash'].time_left/1000, 1)}", clrWhite, "topleft")
+        self.bombtext = Text(self.display_surface, 20, winHeight - 150, 30, f"{round(self.player.timer['bomb'].time_left/1000, 1)}", clrWhite, "topleft")
+        self.leveltext = Text(self.display_surface, None, 25, 60, f"Level: {self.level}", clrWhite)
 
         self.element_list = [self.healthBar, self.dashtext, self.bombtext, self.leveltext]
  
-    def draw_elements(self):
+    def draw_elements(self) -> None:
         self.healthBar.update_hp(self.player.health)
         self.leveltext.change_text(f"Level: {self.level}")
         
@@ -61,15 +65,16 @@ class level:
 
             element.draw()
 
-    def update_enemy_player_pos(self):
+    def update_enemy_player_pos(self) -> None:
         for enemy in self.SpriteGroups.enemy_sprites:
             enemy.update_player_pos(self.player.rect.center)
 
-    def draw_background(self):
+    def draw_background(self) -> None:
         self.display_surface.fill(clrBlack)
         self.display_surface.blit(self.imgBackground,(0, 0))
 
-    def generate_spawn_cords(self):
+    @staticmethod
+    def generate_spawn_cords():
         # Generate random off-screen x-coordinate
         x = random.choice([
             random.randint(-100, -20),
@@ -90,8 +95,18 @@ class level:
 
         return x, y
 
-    def next_level(self):
+    def next_level(self) -> None:
+
         if not self.SpriteGroups.enemy_sprites:
+            if not self.intilize_spawn:
+                self.spawntimmer.activate()
+                self.intilize_spawn = True
+                return 
+
+            if self.spawntimmer.active:
+                self.spawntimmer.update()
+                return
+            
             self.level += 1
             self.player.health += 10
 
@@ -102,7 +117,8 @@ class level:
                 for gravity_bomb in self.SpriteGroups.gravity_ball_sprites:
                     gravity_bomb.kill()
 
-                self.boss = enemy((winWidth/2, -100), 100, 480, 4000, self.SpriteGroups)
+                self.boss = enemy((winWidth/2, -100), 100, 470, 4000, self.SpriteGroups)
+                # 500 3000
             
             else:
                 amount = self.level % 10 + 3
@@ -110,20 +126,28 @@ class level:
 
                 for _ in range(amount):
                     x, y = self.generate_spawn_cords()
-                    enemy((x, y), health, random.randint(200, 400), 3500, self.SpriteGroups)
+                    enemy((x, y), health, random.randint(200, 400), random.randint(3000, 5000), self.SpriteGroups)
 
-                if len(self.SpriteGroups.gravity_ball_sprites) < 5:
+                if len(self.SpriteGroups.gravity_ball_sprites) < 4:
+                    GravityBallCenter((random.randint(0, winWidth), random.randint(0, winHeight)), 300, 300, self.SpriteGroups)
 
-                    for _ in range(random.randint(1, 2)):
-                        GravityBallCenter((random.randint(0, winWidth), random.randint(0, winHeight)), 300, 300, self.SpriteGroups)
+                self.intilize_spawn = False
 
-                return
 
-    def run(self, dt):
-        self.draw_background()
-        self.update_enemy_player_pos()
-        self.SpriteGroups.all_sprites.update(dt)
+    def run(self, dt) -> int:
 
-        self.SpriteGroups.all_sprites.draw(self.display_surface)
-        self.draw_elements()
-        self.next_level()
+        if self.player.health > 0:
+            self.draw_background()
+            self.update_enemy_player_pos()
+            self.SpriteGroups.all_sprites.update(dt)
+
+            self.SpriteGroups.all_sprites.draw(self.display_surface)
+            self.draw_elements()
+            self.next_level()
+
+            if self.level == 31:
+                return 1
+
+            return 0
+        
+        return -1

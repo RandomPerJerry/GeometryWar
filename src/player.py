@@ -20,6 +20,11 @@ class player(pygame.sprite.Sprite):
         self.rect = self.image.get_frect(topleft = self.pos)
         self.old_rect = self.rect.copy()
 
+        self.shoot_sound = pygame.mixer.Sound(join("data", "sounds", "LaserGun_SFX.mp3"))
+        self.shoot_sound.set_volume(0.1)
+
+        self.bomb_sound = pygame.mixer.Sound(join("data", "sounds", "Bomb_SFX.mp3"))
+
         self.health = 100
 
         self.angle = 0
@@ -67,16 +72,18 @@ class player(pygame.sprite.Sprite):
         if keys[pygame.K_SPACE] and self.timer["bomb"].active == False:
             clsBomb(self.rect.center, 10, self.group)
             self.timer["bomb"].activate()
+            self.bomb_sound.play()
 
         if pygame.mouse.get_pressed()[0] and self.timer["shoot"].active == False:
             bullet(self.rect.center, -self.angle, 5, self.group)
             self.timer["shoot"].activate()
+            self.shoot_sound.play()
 
     def collision(self):
 
         if not self.timer["invincible"].active:
             for enemy in self.group.enemy_sprites:
-                if self.rect.colliderect(enemy.rect):
+                if self.rect.colliderect(enemy.hitbox):
                     self.health -= 5
                     self.timer["invincible"].activate()
 

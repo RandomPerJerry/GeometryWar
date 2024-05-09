@@ -13,8 +13,8 @@ class enemy(pygame.sprite.Sprite):
         self.pos = pos
         self.image = pygame.image.load(join("data", "grunt.png"))
         self.image_copy = self.image.copy()
-        self.rect = self.image.get_frect(topleft = self.pos)
-
+        self.rect = self.image.get_frect(center = self.pos)
+        self.hitbox = self.rect.inflate(-20, -20)
 
         self.player_pos = (0, 0)
 
@@ -28,8 +28,11 @@ class enemy(pygame.sprite.Sprite):
 
         self.timer = {
             "dash" : Timer(dash),
-            "dash_duration" : Timer(70)
+            "dash_duration" : Timer(70),
+            "start_cooldown" : Timer((dash - 1000))
         }
+        self.timer["start_cooldown"].activate()
+
 
     
     def movement(self, dt):
@@ -37,7 +40,7 @@ class enemy(pygame.sprite.Sprite):
 
         self.direction = self.determine_vector.normalize() if self.determine_vector else self.determine_vector
 
-        if self.timer["dash"].active == False:
+        if self.timer["dash"].active == False and self.timer["start_cooldown"].active == False:
             self.timer["dash"].activate()
             self.timer["dash_duration"].activate()
             self.dash_multiplier = 4
@@ -46,6 +49,7 @@ class enemy(pygame.sprite.Sprite):
             self.dash_multiplier = 1
  
         self.rect.center += self.direction * self.speed * self.dash_multiplier * dt 
+        self.hitbox.center = self.rect.center
 
     def turn(self):
         rel_x, rel_y = self.player_pos[0] - self.rect.centerx, self.player_pos[1] - self.rect.centery

@@ -1,7 +1,7 @@
 from settings import *
 
 class Text:
-    def __init__(self, surf, x, y, size : int, text : str, colour : tuple):
+    def __init__(self, surf, x, y, size : int, text : str, colour : tuple, allign = "center"):
         #Pre: Requires parameters for message
         #Post: Uses parameters to set variables
         self.surf = surf
@@ -10,7 +10,8 @@ class Text:
         self.colour = colour
         self.size = size
         self.text = text
-        self.font = pygame.font.SysFont("Segoe", self.size)
+        self.allign = allign
+        self.font = pygame.font.SysFont("", self.size)
 
     def change_text(self, text):
         self.text = text
@@ -21,7 +22,14 @@ class Text:
 
         text = self.font.render(self.text, True, self.colour)
 
-        rect = text.get_rect(left = self.x, top = self.y)
+        if not self.x:
+            self.x = winWidth//2
+
+        if not self.y:
+            self.y = winHeight//2
+
+        rect = text.get_rect()
+        setattr(rect, self.allign, (self.x, self.y))
         self.surf.blit(text, rect)
 
 class HealthBar:
